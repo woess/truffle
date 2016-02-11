@@ -32,9 +32,12 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import com.oracle.truffle.api.nodes.JavaMethodCallNode;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import com.oracle.truffle.api.nodes.RootNode;
+
+import java.lang.reflect.Method;
 import java.util.Collection;
 
 /**
@@ -79,6 +82,11 @@ public interface TruffleRuntime {
      * @return the new call node
      */
     IndirectCallNode createIndirectCallNode();
+
+    /**
+     * Create a Java method call node.
+     */
+    JavaMethodCallNode createJavaMethodCallNode(Method reflectionMethod);
 
     /**
      * Creates a new assumption object that can be checked and invalidated.

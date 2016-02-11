@@ -37,10 +37,13 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import com.oracle.truffle.api.nodes.JavaMethodCallNode;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import com.oracle.truffle.api.nodes.RootNode;
+
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -180,5 +183,9 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
 
     public boolean isProfilingEnabled() {
         return false;
+    }
+
+    public JavaMethodCallNode createJavaMethodCallNode(Method reflectionMethod) {
+        return new ReflectionJavaMethodCallNode(reflectionMethod);
     }
 }
