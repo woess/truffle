@@ -24,6 +24,7 @@ package com.oracle.truffle.object;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,19 +41,25 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.ForeignAccess;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.object.DoubleLocation;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.DynamicObjectFactory;
+import com.oracle.truffle.api.object.IntLocation;
 import com.oracle.truffle.api.object.Layout;
 import com.oracle.truffle.api.object.Location;
 import com.oracle.truffle.api.object.LocationFactory;
+import com.oracle.truffle.api.object.LocationModifier;
+import com.oracle.truffle.api.object.LongLocation;
 import com.oracle.truffle.api.object.ObjectLocation;
 import com.oracle.truffle.api.object.ObjectType;
 import com.oracle.truffle.api.object.Property;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.object.ShapeListener;
 import com.oracle.truffle.api.utilities.NeverValidAssumption;
+import com.oracle.truffle.object.LocationImpl.EffectivelyFinalLocation;
 import com.oracle.truffle.object.LocationImpl.InternalLongLocation;
 import com.oracle.truffle.object.LocationImpl.LocationVisitor;
+import com.oracle.truffle.object.LocationImpl.TypedObjectLocation;
 import com.oracle.truffle.object.Locations.ConstantLocation;
 import com.oracle.truffle.object.Locations.DeclaredDualLocation;
 import com.oracle.truffle.object.Locations.DeclaredLocation;
@@ -377,8 +384,7 @@ public abstract class ShapeImpl extends Shape {
                     }
                 }
             } else {
-                Property newProperty = Property.create(key, oldShape.getLayout().existingLocationForValue(value, existing.getLocation(), oldShape), flags);
-                return oldShape.replaceProperty(existing, newProperty);
+                return layout.getStrategy().redefineProperty(existing, value, flags, oldShape);
             }
         }
     }
@@ -1097,6 +1103,38 @@ public abstract class ShapeImpl extends Shape {
             } catch (CloneNotSupportedException e) {
                 throw new AssertionError(e);
             }
+        }
+
+        public Location existingLocationForValue(Object value, Location oldLocation, ShapeImpl oldShape) {
+            assert oldShape.getLayout() == this.layout;
+            Location newLocation;
+            if (oldLocation instanceof IntLocation && value instanceof Integer) {
+                newLocation = oldLocation;
+            } else if (oldLocation instanceof DoubleLocation && (value instanceof Double || this.layout.isAllowedIntToDouble() && value instanceof Integer)) {
+                newLocation = oldLocation;
+            } else if (oldLocation instanceof LongLocation && (value instanceof Long || this.layout.isAllowedIntToLong() && value instanceof Integer)) {
+                newLocation = oldLocation;
+            } else if (oldLocation instanceof DeclaredLocation) {
+                return oldShape.allocator().locationForValue(value, EnumSet.of(LocationModifier.Final, LocationModifier.NonNull));
+            } else if (oldLocation instanceof ConstantLocation) {
+                return LocationImpl.valueEquals(oldLocation.get(null, false), value) ? oldLocation : new Locations.ConstantLocation(value);
+            } else if (oldLocation instanceof TypedObjectLocation && !((TypedObjectLocation<?>) oldLocation).getType().isAssignableFrom(value.getClass())) {
+                newLocation = (((TypedObjectLocation<?>) oldLocation).toUntypedLocation());
+            } else if (oldLocation instanceof DualLocation) {
+                if (oldLocation.canStore(value)) {
+                    newLocation = oldLocation;
+                } else {
+                    newLocation = oldShape.allocator().locationForValueUpcast(value, oldLocation);
+                }
+            } else if (oldLocation instanceof ObjectLocation) {
+                newLocation = oldLocation;
+            } else {
+                return oldShape.allocator().locationForValue(value, EnumSet.of(LocationModifier.NonNull));
+            }
+            if (newLocation instanceof EffectivelyFinalLocation) {
+                newLocation = ((EffectivelyFinalLocation<?>) newLocation).toNonFinalLocation();
+            }
+            return newLocation;
         }
     }
 

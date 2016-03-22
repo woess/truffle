@@ -31,6 +31,7 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.object.LayoutImpl;
 import com.oracle.truffle.object.LayoutStrategy;
 import com.oracle.truffle.object.LocationImpl;
+import com.oracle.truffle.object.PropertyImpl;
 import com.oracle.truffle.object.ShapeImpl;
 import com.oracle.truffle.object.ShapeImpl.BaseAllocator;
 
@@ -73,6 +74,12 @@ class DefaultStrategy extends LayoutStrategy {
         Property newProperty = oldProperty.relocate(newLocation);
         Shape newShape = nextShape.replaceProperty(oldProperty, newProperty);
         return new ShapeAndProperty(newShape, newProperty);
+    }
+
+    @Override
+    protected ShapeImpl redefineProperty(PropertyImpl existing, Object value, int flags, ShapeImpl oldShape) {
+        Property newProperty = Property.create(existing.getKey(), oldShape.allocator().existingLocationForValue(value, existing.getLocation(), oldShape), flags);
+        return oldShape.replaceProperty(existing, newProperty);
     }
 
     @Override
