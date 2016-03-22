@@ -22,7 +22,8 @@
  */
 package com.oracle.truffle.object;
 
-import com.oracle.truffle.api.object.BooleanLocation;
+import java.util.EnumSet;
+
 import com.oracle.truffle.api.object.DoubleLocation;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.IntLocation;
@@ -32,7 +33,6 @@ import com.oracle.truffle.api.object.LocationModifier;
 import com.oracle.truffle.api.object.LongLocation;
 import com.oracle.truffle.api.object.ObjectLocation;
 import com.oracle.truffle.api.object.ObjectType;
-import com.oracle.truffle.api.object.Property;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.object.Shape.Allocator;
 import com.oracle.truffle.object.LocationImpl.EffectivelyFinalLocation;
@@ -40,9 +40,7 @@ import com.oracle.truffle.object.LocationImpl.TypedObjectLocation;
 import com.oracle.truffle.object.Locations.ConstantLocation;
 import com.oracle.truffle.object.Locations.DeclaredLocation;
 import com.oracle.truffle.object.Locations.DualLocation;
-import com.oracle.truffle.object.Locations.ValueLocation;
 import com.oracle.truffle.object.ShapeImpl.BaseAllocator;
-import java.util.EnumSet;
 
 public abstract class LayoutImpl extends Layout {
     private static final int INT_TO_DOUBLE_FLAG = 1;
@@ -99,35 +97,6 @@ public abstract class LayoutImpl extends Layout {
 
     protected abstract int objectFieldIndex(Location location);
 
-    protected boolean isLocationAssignableFrom(Location destination, Location source) {
-        LayoutImpl layout = this;
-        if (destination.isFinal()) {
-            // allowed Final<X>Location => Final<X>Location
-            // allowed FinalIntLocation => Final{Int,Double}Location
-            // allowed: Final{Int,Double,TypedObject}Location => FinalObjectLocation
-            if (!source.isFinal()) {
-                return false;
-            }
-        }
-
-        if (destination instanceof IntLocation) {
-            return (source instanceof IntLocation);
-        } else if (destination instanceof DoubleLocation) {
-            return (source instanceof DoubleLocation || (layout.isAllowedIntToDouble() && source instanceof IntLocation));
-        } else if (destination instanceof LongLocation) {
-            return (source instanceof LongLocation || (layout.isAllowedIntToLong() && source instanceof IntLocation));
-        } else if (destination instanceof BooleanLocation) {
-            return (source instanceof BooleanLocation);
-        } else if (destination instanceof TypedObjectLocation) {
-            return source instanceof TypedObjectLocation && ((TypedObjectLocation<?>) destination).getType().isAssignableFrom(((TypedObjectLocation<?>) source).getType());
-        } else if (destination instanceof ValueLocation) {
-            return false;
-        } else {
-            assert destination instanceof ObjectLocation || destination instanceof DualLocation;
-            return true;
-        }
-    }
-
     protected Location existingLocationForValue(Object value, Location oldLocation, Shape oldShape) {
         assert oldShape.getLayout() == this;
         Location newLocation;
@@ -158,21 +127,6 @@ public abstract class LayoutImpl extends Layout {
             newLocation = ((EffectivelyFinalLocation<?>) newLocation).toNonFinalLocation();
         }
         return newLocation;
-    }
-
-    /**
-     * Is this property an upcast of the other property?
-     *
-     * @param other the property being compared to
-     * @return true if this is a upcast of the other property, false otherwise
-     */
-    public boolean isPropertyUpcastOf(Property thiz, Property other) {
-        if (thiz.getLocation() != null && other.getLocation() != null && other.getKey().equals(thiz.getKey()) && other.getFlags() == thiz.getFlags()) {
-            if (isLocationAssignableFrom(thiz.getLocation(), other.getLocation())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
