@@ -384,7 +384,7 @@ public abstract class ShapeImpl extends Shape {
                     }
                 }
             } else {
-                return layout.getStrategy().redefineProperty(existing, value, flags, oldShape);
+                return (ShapeImpl) layout.getStrategy().redefineProperty(existing, value, flags, oldShape).getShape();
             }
         }
     }

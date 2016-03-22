@@ -77,9 +77,10 @@ class DefaultStrategy extends LayoutStrategy {
     }
 
     @Override
-    protected ShapeImpl redefineProperty(PropertyImpl existing, Object value, int flags, ShapeImpl oldShape) {
+    protected ShapeAndProperty redefineProperty(PropertyImpl existing, Object value, int flags, ShapeImpl oldShape) {
         Property newProperty = Property.create(existing.getKey(), oldShape.allocator().existingLocationForValue(value, existing.getLocation(), oldShape), flags);
-        return oldShape.replaceProperty(existing, newProperty);
+        ShapeImpl newShape = oldShape.replaceProperty(existing, newProperty);
+        return new ShapeAndProperty(newShape, newProperty);
     }
 
     @Override

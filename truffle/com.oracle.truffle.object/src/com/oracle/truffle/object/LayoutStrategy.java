@@ -43,7 +43,7 @@ public abstract class LayoutStrategy {
 
     protected abstract ShapeAndProperty generalizeProperty(Property oldProperty, Object value, ShapeImpl currentShape, ShapeImpl nextShape);
 
-    protected abstract ShapeImpl redefineProperty(PropertyImpl oldProperty, Object value, int flags, ShapeImpl oldShape);
+    protected abstract ShapeAndProperty redefineProperty(PropertyImpl oldProperty, Object value, int flags, ShapeImpl oldShape);
 
     public static class ShapeAndProperty {
         private final Shape shape;
